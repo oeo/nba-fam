@@ -9,7 +9,9 @@ bun install
 bun run dev
 ```
 
-Open `http://localhost:3099` — both players pick a year, snake draft 5 players (PG/SG/SF/PF/C), then simulate 1000 games.
+Open `http://localhost:3099` — build two rosters (PG/SG/SF/PF/C from any season), lock your picks, simulate 1000 games, then replay any of them play-by-play.
+
+The UI (`src/ui/`) is React via Bun's native HTML imports — no separate bundler. Pick records and saved rosters live in `localStorage`; the server is stateless.
 
 ## Commands
 

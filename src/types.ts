@@ -33,6 +33,22 @@ export interface GameResult {
   team2Score: number;
 }
 
+export interface PlayerSimAvg {
+  playerId: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  tov: number;
+  fgm: number;
+  fga: number;
+  fg3m: number;
+  fg3a: number;
+  ftm: number;
+  fta: number;
+}
+
 export interface SimResult {
   team1Wins: number;
   team2Wins: number;
@@ -40,6 +56,8 @@ export interface SimResult {
   team2AvgScore: number;
   totalGames: number;
   games: GameResult[];
+  team1PlayerAvgs: PlayerSimAvg[];
+  team2PlayerAvgs: PlayerSimAvg[];
 }
 
 export interface SimRequest {

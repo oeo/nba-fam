@@ -101,6 +101,9 @@ describe("API", () => {
     expect(result.games[0]).toHaveProperty("seed");
     expect(result.games[0]).toHaveProperty("team1Score");
     expect(result.games[0]).toHaveProperty("team2Score");
+    expect(result.team1PlayerAvgs.length).toBe(5);
+    expect(result.team2PlayerAvgs.length).toBe(5);
+    expect(result.team1PlayerAvgs[0].pts).toBeGreaterThanOrEqual(0);
   });
 
   test("GET /api/game replays one game deterministically", async () => {

@@ -3,6 +3,7 @@ import { runSimulations } from "./simulator";
 import { simulateGame } from "./engine/game";
 import { boxScore } from "./engine/boxscore";
 import players from "./data/players.json" with { type: "json" };
+import index from "./ui/index.html";
 
 const allPlayers = players as Player[];
 
@@ -81,9 +82,7 @@ Bun.serve({
         return Response.json({ seed, players: names, box: boxScore(events), events });
       },
     },
-    "/": {
-      GET: () => new Response(Bun.file("index.html")),
-    },
+    "/": index,
   },
 
   development: process.env.NODE_ENV !== "production",
