@@ -1,0 +1,10 @@
+{
+  "name": "liam-basketball",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "test": "bun test",
+    "build-data": "bun run scripts/build-data.ts"
+  }
+}
