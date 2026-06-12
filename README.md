@@ -2,6 +2,8 @@
 
 Build teams of NBA players from any season, lock your pick on the winner, and settle it with an event-sourced, deterministic game engine — then replay any simulated game play-by-play on a rendered court.
 
+![Replaying a simulated 1997 vs 2010 game](docs/replay.png)
+
 ## Quick Start
 
 ```sh
