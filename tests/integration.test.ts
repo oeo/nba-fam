@@ -166,6 +166,19 @@ describe("API", () => {
     expect(res.status).toBe(400);
   });
 
+  test("GET /api/tracks lists music and serves it", async () => {
+    const res = await fetch(`${BASE}/api/tracks`);
+    expect(res.status).toBe(200);
+    const tracks = await res.json();
+    expect(Array.isArray(tracks)).toBe(true);
+    if (!tracks.length) return; // music/ is git-ignored; empty checkout is valid
+
+    expect(tracks[0]).toHaveProperty("title");
+    const audio = await fetch(`${BASE}${tracks[0].url}`);
+    expect(audio.status).toBe(200);
+    expect(audio.headers.get("content-type")).toContain("audio");
+  });
+
   test("GET / serves HTML", async () => {
     const res = await fetch(BASE);
     expect(res.status).toBe(200);

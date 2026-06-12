@@ -7,6 +7,27 @@ import index from "./ui/index.html";
 
 const allPlayers = players as Player[];
 
+function scanTracks(): string[] {
+  try {
+    return [...new Bun.Glob("*.mp3").scanSync("music")].sort();
+  } catch {
+    console.warn("music/ directory not found — music player disabled");
+    return [];
+  }
+}
+
+// Strip "(Lyrics)"-style suffixes and "｜ ..." tails from filenames.
+function trackTitle(file: string): string {
+  return file
+    .replace(/\.mp3$/i, "")
+    .split("｜")[0]
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const trackFiles = scanTracks();
+
 function resolveTeam(ids: string[] | null | undefined): Player[] | null {
   if (!ids || ids.length !== 5) return null;
   const team = ids.map((id) => allPlayers.find((p) => p.id === id)).filter(Boolean) as Player[];
@@ -94,6 +115,19 @@ Bun.serve({
         const events = simulateGame(team1, team2, seed);
         const names = Object.fromEntries([...team1, ...team2].map((p) => [p.id, p.name]));
         return Response.json({ seed, players: names, box: boxScore(events), events });
+      },
+    },
+    "/api/tracks": {
+      GET: () =>
+        Response.json(
+          trackFiles.map((f, i) => ({ id: i, title: trackTitle(f), url: `/api/music/${i}` })),
+        ),
+    },
+    "/api/music/:id": {
+      GET: (req) => {
+        const file = trackFiles[parseInt(req.params.id, 10)];
+        if (!file) return new Response("Not found", { status: 404 });
+        return new Response(Bun.file(`music/${file}`));
       },
     },
     "/": index,

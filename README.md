@@ -32,6 +32,8 @@ The UI (`src/ui/`) is React via Bun's native HTML imports — no separate bundle
 | `GET` | `/api/players?ids=id1,id2,...` | Players by id, in request order |
 | `POST` | `/api/simulate` | Run 1000 simulations. Body: `{ team1: [...], team2: [...], baseSeed? }` — same `baseSeed` reproduces the run |
 | `GET` | `/api/game?team1=id1,...&team2=id1,...&seed=N` | Re-simulate one game, returning its full event timeline and box score |
+| `GET` | `/api/tracks` | Music playlist scanned from `music/*.mp3` at startup (git-ignored — drop your own in) |
+| `GET` | `/api/music/:id` | Stream one track |
 
 ## Data
 

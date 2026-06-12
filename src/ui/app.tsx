@@ -5,6 +5,7 @@ import { useRoute } from "./router";
 import { Draft } from "./draft";
 import { Matchup } from "./matchup";
 import { Replay } from "./replay";
+import { MusicPlayer } from "./music";
 
 export interface Teams {
   team1: ApiPlayer[];
@@ -90,6 +91,7 @@ function App() {
         <Steps stage={stage} />
       </header>
       {view}
+      <MusicPlayer />
     </div>
   );
 }
