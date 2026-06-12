@@ -1,6 +1,6 @@
-# NBA Draft & Simulator
+# Pickem Basketball
 
-Draft teams of NBA players from any season and simulate games against each other using an event-sourced, deterministic game engine.
+Build teams of NBA players from any season, lock your pick on the winner, and settle it with an event-sourced, deterministic game engine — then replay any simulated game play-by-play on a rendered court.
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ The UI (`src/ui/`) is React via Bun's native HTML imports — no separate bundle
 | Command | Purpose |
 |---------|---------|
 | `bun run dev` | Start dev server with hot reload |
-| `bun test` | Run integration tests |
+| `bun test` | Run engine and API tests |
 | `bun run build-data` | Rebuild `players.json` from CSVs |
 
 ## API
@@ -42,8 +42,10 @@ Players with fewer than 10 games in a season are excluded.
 
 ## Simulation Detail
 
-The engine (`src/engine/`) is event-sourced: each game is a timeline of timestamped events (shots, rebounds, assists, steals, blocks, turnovers, fouls, free throws) with the running score and game clock embedded in every event. Box scores and results are derived by folding over the timeline.
+The engine (`src/engine/`) is event-sourced: each game is a timeline of timestamped events (shots, rebounds, assists, steals, blocks, turnovers, fouls, free throws), each carrying the running score, game clock, and current possession. Box scores and results are derived by folding over the timeline.
 
 - **Real clock:** 4 × 12-minute quarters, 5-minute overtimes until a winner. Possessions emerge from sampled action times under a 24s shot clock; offensive rebounds reset to 14s.
-- **Deterministic:** every game is seeded — the same matchup and seed reproduce the identical timeline. `POST /api/simulate` plays 1000 seeded games and reports win probability, average scores, and per-game `{seed, scores}`; `GET /api/game` replays any of them in full (team1 = home).
+- **Deterministic:** every game is seeded — the same matchup and seed reproduce the identical timeline. `POST /api/simulate` plays 1000 seeded games and reports win probability, average scores, per-game `{seed, scores}`, and averaged per-player box lines; `GET /api/game` replays any of them in full (team1 = home).
 - **Attribution:** shooters by FGA share, assists by AST share, steals/blocks/rebounds contested via individual rates. Tuning knobs live in `src/engine/constants.ts`.
+
+Court coordinates in the replay UI are synthesized deterministically per event (`src/ui/court.tsx`) — presentational only, since the source data has no shot locations.
