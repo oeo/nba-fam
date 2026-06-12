@@ -1,17 +1,17 @@
 {
   "name": "liam-basketball",
   "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "bun --hot src/index.ts",
-    "test": "bun test",
-    "build-data": "bun run scripts/build-data.ts"
-  },
   "dependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "bun-types": "^1.3.14",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
-  }
+  },
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "test": "bun test",
+    "build-data": "bun run scripts/build-data.ts"
+  },
+  "type": "module"
 }

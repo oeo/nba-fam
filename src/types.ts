@@ -50,6 +50,7 @@ export interface PlayerSimAvg {
 }
 
 export interface SimResult {
+  baseSeed: number;
   team1Wins: number;
   team2Wins: number;
   team1AvgScore: number;
@@ -63,6 +64,7 @@ export interface SimResult {
 export interface SimRequest {
   team1: string[];
   team2: string[];
+  baseSeed?: number; // same baseSeed reproduces the identical 1000-game run
 }
 
 export interface ApiPlayer {

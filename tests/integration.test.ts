@@ -124,6 +124,34 @@ describe("API", () => {
     expect(replay).toEqual(game);
   });
 
+  test("GET /api/players resolves ids in order", async () => {
+    const teams = await draftTeams();
+    if (!teams) return;
+
+    const res = await fetch(`${BASE}/api/players?ids=${teams.team1Ids.join(",")}`);
+    expect(res.status).toBe(200);
+    const players = await res.json();
+    expect(players.map((p: any) => p.id)).toEqual(teams.team1Ids);
+  });
+
+  test("POST /api/simulate is deterministic given baseSeed", async () => {
+    const teams = await draftTeams();
+    if (!teams) return;
+
+    const run = async () =>
+      (await fetch(`${BASE}/api/simulate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team1: teams.team1Ids, team2: teams.team2Ids, baseSeed: 42 }),
+      })).json();
+
+    const a = await run();
+    const b = await run();
+    expect(a.baseSeed).toBe(42);
+    expect(a.team1Wins).toBe(b.team1Wins);
+    expect(a.games[0]).toEqual(b.games[0]);
+  });
+
   test("GET /api/game rejects bad params", async () => {
     const res = await fetch(`${BASE}/api/game?team1=a&team2=b&seed=x`);
     expect(res.status).toBe(400);

@@ -147,8 +147,7 @@ export function Draft({ onStart }: { onStart: (teams: Teams) => void }) {
     setSort((s) => ({ key, dir: s.key === key ? ((-s.dir) as 1 | -1) : key === "name" ? 1 : -1 }));
 
   return (
-    <div className="container">
-      <h1>Pickem Basketball</h1>
+    <>
       <p className="subtitle">Build two rosters, lock your picks, simulate 1000 games</p>
 
       <div className="draft-grid">
@@ -241,9 +240,9 @@ export function Draft({ onStart }: { onStart: (teams: Teams) => void }) {
 
       <div className="btn-center">
         <button className="btn-primary" disabled={!complete} onClick={start}>
-          Lock Rosters → Make Picks
+          Continue to Picks →
         </button>
       </div>
-    </div>
+    </>
   );
 }

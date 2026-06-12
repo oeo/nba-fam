@@ -41,3 +41,4 @@ yarn-lock.json
 *.7z
 *.rar
 
+music/*.mp3

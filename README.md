@@ -11,7 +11,7 @@ bun run dev
 
 Open `http://localhost:3099` — build two rosters (PG/SG/SF/PF/C from any season), lock your picks, simulate 1000 games, then replay any of them play-by-play.
 
-The UI (`src/ui/`) is React via Bun's native HTML imports — no separate bundler. Pick records and saved rosters live in `localStorage`; the server is stateless.
+The UI (`src/ui/`) is React via Bun's native HTML imports — no separate bundler. Hash-routed (`#/`, `#/matchup`, `#/replay`) with team ids and seeds in the URL, so every matchup, result, and replay is refresh-safe and deep-linkable. Pick records and saved rosters live in `localStorage`; the server is stateless.
 
 ## Commands
 
@@ -27,7 +27,8 @@ The UI (`src/ui/`) is React via Bun's native HTML imports — no separate bundle
 |--------|------|-------------|
 | `GET` | `/api/years` | All available seasons |
 | `GET` | `/api/players?year=2024&position=PG` | Players filtered by year and position |
-| `POST` | `/api/simulate` | Run 1000 simulations. Body: `{ team1: ["id1",...], team2: ["id1",...] }` |
+| `GET` | `/api/players?ids=id1,id2,...` | Players by id, in request order |
+| `POST` | `/api/simulate` | Run 1000 simulations. Body: `{ team1: [...], team2: [...], baseSeed? }` — same `baseSeed` reproduces the run |
 | `GET` | `/api/game?team1=id1,...&team2=id1,...&seed=N` | Re-simulate one game, returning its full event timeline and box score |
 
 ## Data

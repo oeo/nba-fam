@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import type { PlayerSimAvg, SimResult } from "../types";
-import type { Teams } from "./app";
+import { useEffect, useMemo, useState } from "react";
+import type { ApiPlayer, PlayerSimAvg, SimResult } from "../types";
+import { teamLabel, type Teams } from "./app";
 
 type TeamNum = 1 | 2;
 
@@ -12,105 +12,153 @@ export interface Picks {
 interface Ladder {
   p1: { right: number; wrong: number };
   p2: { right: number; wrong: number };
+  lastSim?: number; // dedupes ladder updates across refreshes of the same run
 }
 
 const LADDER_KEY = "pickem-ladder";
 
 function loadLadder(): Ladder {
   try {
-    return JSON.parse(localStorage.getItem(LADDER_KEY) ?? "") as Ladder;
-  } catch {
-    return { p1: { right: 0, wrong: 0 }, p2: { right: 0, wrong: 0 } };
-  }
+    const l = JSON.parse(localStorage.getItem(LADDER_KEY) ?? "");
+    if (l?.p1) return l;
+  } catch {}
+  return { p1: { right: 0, wrong: 0 }, p2: { right: 0, wrong: 0 } };
 }
 
 interface MatchupProps {
   teams: Teams;
-  sim: SimResult | null;
-  setSim: (s: SimResult) => void;
-  picks: Picks | null;
-  setPicks: (p: Picks) => void;
-  onReplay: (seed: number) => void;
-  onNewDraft: () => void;
+  params: URLSearchParams;
+  navigate: (to: string, replace?: boolean) => void;
+  simCache: Map<string, SimResult>;
 }
 
-export function Matchup({ teams, sim, setSim, picks, setPicks, onReplay, onNewDraft }: MatchupProps) {
+export function Matchup({ teams, params, navigate, simCache }: MatchupProps) {
+  const t1 = params.get("t1")!;
+  const t2 = params.get("t2")!;
+  const simSeed = params.get("sim");
+  const picks: Picks | null = simSeed
+    ? {
+        p1: params.get("p1") === "2" ? 2 : 1,
+        p2: params.get("p2") === "2" ? 2 : 1,
+      }
+    : null;
+
   const [pending, setPending] = useState<{ p1: TeamNum | null; p2: TeamNum | null }>({ p1: null, p2: null });
-  const [loading, setLoading] = useState(false);
+  const [sim, setSim] = useState<SimResult | null>(simSeed ? (simCache.get(simSeed) ?? null) : null);
   const [ladder, setLadder] = useState<Ladder>(loadLadder);
 
-  const simulate = async () => {
-    if (!pending.p1 || !pending.p2) return;
-    const locked: Picks = { p1: pending.p1, p2: pending.p2 };
-    setPicks(locked);
-    setLoading(true);
-    const res = await fetch("/api/simulate", {
+  useEffect(() => {
+    if (!simSeed) {
+      setSim(null);
+      return;
+    }
+    const cached = simCache.get(simSeed);
+    if (cached) {
+      setSim(cached);
+      return;
+    }
+    let alive = true;
+    fetch("/api/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        team1: teams.team1.map((p) => p.id),
-        team2: teams.team2.map((p) => p.id),
+        team1: t1.split(","),
+        team2: t2.split(","),
+        baseSeed: parseInt(simSeed, 10),
       }),
-    });
-    const result: SimResult = await res.json();
-    setLoading(false);
-    setSim(result);
+    })
+      .then((r) => r.json())
+      .then((result: SimResult) => {
+        if (!alive) return;
+        simCache.set(simSeed, result);
+        setSim(result);
 
-    const winner: TeamNum = result.team1Wins > result.team2Wins ? 1 : 2;
-    const next: Ladder = {
-      p1: { ...ladder.p1, [locked.p1 === winner ? "right" : "wrong"]: ladder.p1[locked.p1 === winner ? "right" : "wrong"] + 1 },
-      p2: { ...ladder.p2, [locked.p2 === winner ? "right" : "wrong"]: ladder.p2[locked.p2 === winner ? "right" : "wrong"] + 1 },
+        const l = loadLadder();
+        if (l.lastSim !== result.baseSeed && picks) {
+          const winner: TeamNum = result.team1Wins > result.team2Wins ? 1 : 2;
+          for (const who of ["p1", "p2"] as const) {
+            l[who][picks[who] === winner ? "right" : "wrong"]++;
+          }
+          l.lastSim = result.baseSeed;
+          localStorage.setItem(LADDER_KEY, JSON.stringify(l));
+          setLadder(l);
+        }
+      });
+    return () => {
+      alive = false;
     };
-    setLadder(next);
-    localStorage.setItem(LADDER_KEY, JSON.stringify(next));
+  }, [simSeed]);
+
+  const lockAndSimulate = () => {
+    if (!pending.p1 || !pending.p2) return;
+    const seed = (Math.random() * 0xffffffff) >>> 0;
+    navigate(`/matchup?t1=${t1}&t2=${t2}&sim=${seed}&p1=${pending.p1}&p2=${pending.p2}`);
   };
 
   return (
-    <div className="container">
-      <h1>Matchup</h1>
-      <div className="roster-strip">
-        {([1, 2] as TeamNum[]).map((team) => (
-          <div key={team} className="roster-mini">
-            <b className={`team-name t${team}`}>Team {team}</b>
-            {(team === 1 ? teams.team1 : teams.team2).map((p) => (
-              <span key={p.id}>{p.name}</span>
-            ))}
-          </div>
-        ))}
+    <>
+      <div className="vs-grid">
+        <TeamCard team={1} roster={teams.team1} label={teamLabel(teams, 1)} />
+        <div className="vs">VS</div>
+        <TeamCard team={2} roster={teams.team2} label={teamLabel(teams, 2)} />
       </div>
 
-      {!sim && (
+      {!simSeed && (
         <div className="panel">
-          <div className="panel-title">Lock your picks</div>
-          <div className="picks-grid">
-            {(["p1", "p2"] as const).map((who, i) => (
-              <div key={who} className="pick-block">
-                <span className="pick-who">Player {i + 1} picks</span>
+          <div className="panel-title">Who wins? Lock your picks</div>
+          {(["p1", "p2"] as const).map((who, i) => (
+            <div key={who} className="picker-row">
+              <span className="pick-who">Picker {i + 1}</span>
+              <div className="segmented">
                 {([1, 2] as TeamNum[]).map((team) => (
                   <button
                     key={team}
-                    className={`btn-pick t${team} ${pending[who] === team ? "selected" : ""}`}
+                    className={`seg t${team} ${pending[who] === team ? "selected" : ""}`}
                     onClick={() => setPending((p) => ({ ...p, [who]: team }))}
                   >
-                    Team {team}
+                    {teamLabel(teams, team)}
                   </button>
                 ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           <div className="btn-center">
-            <button className="btn-primary" disabled={!pending.p1 || !pending.p2 || loading} onClick={simulate}>
-              {loading ? "Simulating 1000 games…" : "Lock Picks & Simulate"}
+            <button className="btn-primary" disabled={!pending.p1 || !pending.p2} onClick={lockAndSimulate}>
+              Lock Picks & Simulate 1000 Games
             </button>
           </div>
         </div>
       )}
 
-      {sim && picks && <Results sim={sim} picks={picks} ladder={ladder} teams={teams} onReplay={onReplay} />}
+      {simSeed && !sim && <p className="hint">Simulating 1000 games…</p>}
+
+      {sim && picks && (
+        <Results
+          sim={sim}
+          picks={picks}
+          ladder={ladder}
+          teams={teams}
+          onReplay={(seed) => navigate(`/replay?t1=${t1}&t2=${t2}&seed=${seed}`)}
+        />
+      )}
 
       <div className="btn-center">
-        <button className="btn-small" onClick={onNewDraft}>New Draft</button>
+        <button className="btn-small" onClick={() => navigate("/")}>← New Draft</button>
       </div>
+    </>
+  );
+}
+
+function TeamCard({ team, roster, label }: { team: TeamNum; roster: ApiPlayer[]; label: string }) {
+  return (
+    <div className={`team-card t${team}`}>
+      <div className={`team-name t${team}`}>{label}</div>
+      {roster.map((p) => (
+        <div key={p.id} className="card-row">
+          <span>{p.name}</span>
+          <small>{p.ppg} ppg</small>
+        </div>
+      ))}
     </div>
   );
 }
@@ -165,8 +213,8 @@ function Results({ sim, picks, ladder, teams, onReplay }: {
             const right = picks[who] === winner;
             return (
               <div key={who} className={`pick-result ${right ? "right" : "wrong"}`}>
-                Player {i + 1} picked Team {picks[who]} — {right ? "✓ correct" : "✗ wrong"}
-                <small>season: {ladder[who].right}–{ladder[who].wrong}</small>
+                Picker {i + 1} took {teamLabel(teams, picks[who])} — {right ? "✓ correct" : "✗ wrong"}
+                <small>season record: {ladder[who].right}–{ladder[who].wrong}</small>
               </div>
             );
           })}
@@ -174,7 +222,9 @@ function Results({ sim, picks, ladder, teams, onReplay }: {
       </div>
 
       <div className="panel">
-        <div className="panel-title">Margin distribution <small>(Team 1 minus Team 2 — click a bar to replay)</small></div>
+        <div className="panel-title">
+          Watch a game <small>(margin distribution, Team 1 minus Team 2 — click a bar to replay)</small>
+        </div>
         <div className="histogram">
           {bins.map((b) => (
             <button
@@ -212,6 +262,7 @@ function Results({ sim, picks, ladder, teams, onReplay }: {
             <AvgTable
               key={team}
               team={team}
+              label={teamLabel(teams, team)}
               avgs={team === 1 ? sim.team1PlayerAvgs : sim.team2PlayerAvgs}
               names={Object.fromEntries((team === 1 ? teams.team1 : teams.team2).map((p) => [p.id, p.name]))}
             />
@@ -222,12 +273,17 @@ function Results({ sim, picks, ladder, teams, onReplay }: {
   );
 }
 
-function AvgTable({ team, avgs, names }: { team: TeamNum; avgs: PlayerSimAvg[]; names: Record<string, string> }) {
+function AvgTable({ team, label, avgs, names }: {
+  team: TeamNum;
+  label: string;
+  avgs: PlayerSimAvg[];
+  names: Record<string, string>;
+}) {
   return (
     <table className="player-table">
       <thead>
         <tr>
-          <th className={`team-name t${team}`}>Team {team}</th>
+          <th className={`team-name t${team}`}>{label}</th>
           <th className="num">PTS</th>
           <th className="num">REB</th>
           <th className="num">AST</th>

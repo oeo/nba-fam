@@ -42,6 +42,15 @@ Bun.serve({
     "/api/players": {
       GET: (req) => {
         const url = new URL(req.url);
+        const ids = url.searchParams.get("ids");
+        if (ids) {
+          const found = ids
+            .split(",")
+            .map((id) => allPlayers.find((p) => p.id === id))
+            .filter(Boolean) as Player[];
+          return Response.json(found.map(toApiPlayer));
+        }
+
         const year = parseInt(url.searchParams.get("year") ?? "", 10);
         const position = url.searchParams.get("position");
 
@@ -62,7 +71,12 @@ Bun.serve({
           return new Response("Invalid teams", { status: 400 });
         }
 
-        const result = runSimulations(team1, team2);
+        const result = runSimulations(
+          team1,
+          team2,
+          1000,
+          Number.isInteger(body.baseSeed) ? body.baseSeed : undefined,
+        );
         return Response.json(result);
       },
     },

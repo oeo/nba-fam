@@ -34,6 +34,7 @@ export interface EventBase {
   period: number; // 1-4, 5+ = overtime
   clock: number; // seconds remaining in the period
   score: Score; // running score after this event
+  possession: TeamSide | null; // team on offense when this event occurred; null for structural events
 }
 
 export type GameEvent = EventBase & EventPayload;

@@ -20,9 +20,9 @@ export function simulateGame(homeRoster: Player[], awayRoster: Player[], seed: n
   let period = 0;
   let clock = 0;
 
-  const emit = (payload: EventPayload) => {
+  const emit = (payload: EventPayload, possession: TeamSide | null) => {
     if (payload.team) score[payload.team] += pointsOf(payload);
-    events.push({ seq: seq++, period, clock, score: { ...score }, ...payload } as GameEvent);
+    events.push({ seq: seq++, period, clock, score: { ...score }, possession, ...payload } as GameEvent);
   };
 
   const tipWinner: TeamSide = rng() < 0.5 ? "home" : "away";
@@ -31,12 +31,12 @@ export function simulateGame(homeRoster: Player[], awayRoster: Player[], seed: n
   while (true) {
     period++;
     clock = period <= PERIODS ? PERIOD_SECONDS : OT_SECONDS;
-    emit({ type: "period_start", team: null });
+    emit({ type: "period_start", team: null }, null);
 
     let offense: TeamSide;
     if (period === 1 || period > PERIODS) {
       offense = period === 1 ? tipWinner : rng() < 0.5 ? "home" : "away";
-      emit({ type: "jump_ball", team: offense });
+      emit({ type: "jump_ball", team: offense }, offense);
     } else {
       // NBA rule: loser of the opening tip starts Q2 and Q3, winner starts Q4.
       offense = period === PERIODS ? tipWinner : tipLoser;
@@ -47,14 +47,14 @@ export function simulateGame(homeRoster: Player[], awayRoster: Player[], seed: n
       const def = offense === "home" ? away : home;
       for (const t of runPossession(off, def, clock, rng)) {
         clock = Math.max(0, clock - t.dt);
-        emit(t.payload);
+        emit(t.payload, offense);
       }
       offense = offense === "home" ? "away" : "home";
     }
-    emit({ type: "period_end", team: null });
+    emit({ type: "period_end", team: null }, null);
     if (period >= PERIODS && score.home !== score.away) break;
   }
 
-  emit({ type: "game_end", team: null });
+  emit({ type: "game_end", team: null }, null);
   return events;
 }

@@ -69,6 +69,7 @@ export function runSimulations(
   }
 
   return {
+    baseSeed,
     team1Wins,
     team2Wins,
     team1AvgScore: Math.round((team1Total / totalGames) * 10) / 10,
